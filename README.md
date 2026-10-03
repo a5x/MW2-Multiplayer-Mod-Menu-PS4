@@ -16,22 +16,22 @@ A mythic **Call of Duty: Modern Warfare 2 Multiplayer Mod Menu** ported to **PS4
 
 ### Account Options
 
-* Account Options
-* Modded Accolades stats (10k to 1b)
-* Modded class names options
+- Account Options
+- Modded Accolades stats (10k to 1b)
+- Modded class names options
  - Color class names
  - Modded class names (keybind square etc)
-* Clantag menu
+- Clantag menu
  - unbound
  - {IL}
  - {{}}
  - {@@}
  - {EZ}
  - @  @
-* LEVEL 70
-* Unlock all
-* Select Prestige
-* Preset Stats Account
+- LEVEL 70
+- Unlock all
+- Select Prestige
+- Preset Stats Account
 
 ### Infection Options
 
