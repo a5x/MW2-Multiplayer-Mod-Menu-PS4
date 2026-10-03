@@ -14,9 +14,7 @@ A mythic **Call of Duty: Modern Warfare 2 Multiplayer Mod Menu** ported to **PS4
 * FOV
 * etc
 
-### Account Options
-
-- Account Options
+- ***Account Options***
 - Modded Accolades stats (10k to 1b)
 - Modded class names options
  - Color class names
