@@ -1,6 +1,6 @@
 # MW2-Multiplayer-Mod-Menu-PS4
 
-# **White Water Menu**
+# **White Water Menu V6 by @a5x and @urbaazz**
 
 A mythic **Call of Duty: Modern Warfare 2 Multiplayer Mod Menu** ported to **PS4** for **Private Matches**.
 
