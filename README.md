@@ -31,51 +31,41 @@ A mythic **Call of Duty: Modern Warfare 2 Multiplayer Mod Menu** ported to **PS4
 - LEVEL 70
 - Unlock all
 - Select Prestige
+  - 1 to 300
 - Preset Stats Account
+  - Legit Stats
+  - moderate Stats
+  - insane stats
 
 
 - ***Infection Options***
 
 - ***Fun Options***
 
-### Weapons Options
+- ***Weapons Stats***
+- Gold Desert Eagle
+- Give Weapons
+- Camo Loop
+- and more
 
-* Gold Desert Eagle
-* Give Weapons
-* Camo Loop
+- ***Model Options***
 
-### Model Options
+- ***Admin Options***
 
-* Model Options
+- ***Message Menu***
 
-### Admin Options
+- ***Host Options***
 
-* Admin Options
+- ***Map Options***
 
-### Message Menu
+- ***Settings & Forge***
 
-* Message Menu
+- ***Patches Menu***
+  - Ai Zombies Extreme
 
-### Host Options
-
-* Host Options
-
-### Map Options
-
-* Map Options
-
-### Settings & Forge
-
-* Settings & Forge
-
-### Patches Menu
-
-* Ai Zombies Extreme
-
-### Players
-
-* ALL Players
-* Player List
+- ***Players***
+  - ALL Players
+  - Player List
 
 ---
 
