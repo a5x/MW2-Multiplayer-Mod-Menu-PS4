@@ -1,3 +1,33 @@
+// ============================================================================
+//  Battle Royale for WhiteWater (MW2 2009, PS4 port).
+//
+//  Started by a Co-Host or the Host from the Patches Menu, on the map being
+//  played (no map load). Everybody playing at the start is in it:
+//    - 10 s countdown, everybody is redeployed (killed once, the death does
+//      not count) and spawns frozen with a USP .45 only
+//    - GO: everybody falls from the sky over a spawn inside the zone (no fall
+//      damage while it runs)
+//    - loot crates on the map (walk over them): Common SMGs, Rare rifles and
+//      shotguns, Epic snipers and LMGs; an airdrop of 2 Epic / Legendary
+//      crates falls into the new zone after each shrink. Legendary also
+//      gives 150 health for that life.
+//    - the zone: 5 phases, each a wait then a shrink towards a random end
+//      point, the next circle always inside the last one. Flags on the edge
+//      show it, they slide inwards while it shrinks. Outside it the player
+//      loses health every second, more each phase; the last circle is 0.
+//    - dead = out: spectator until the end. Free-for-all: the last one alive
+//      wins. Team modes: the last team with players alive wins.
+//    - the menu stays closed for everybody below Co-Host while it runs.
+//  At the end the eliminated players go back to their team and spawn again.
+//
+//  For the port, as the rest of the menu: the HUD shows its numbers with
+//  setValue after a precached label (no new text per update: the game's text
+//  slots run out), only models and effects the game or the menu has loaded,
+//  only built-in functions the menu already calls.
+//
+//  maps\mp\_modmenu.gsc calls br_init() from init(), br_onSpawned() on every
+//  spawn, and has "Battle Royale" / "Stop Battle Royale" in the Patches Menu.
+// ============================================================================
 
 #include maps\mp\_utility;
 #include maps\mp\gametypes\_hud_util;
@@ -14,6 +44,9 @@ br_init()
 	precacheModel( "com_plasticcase_friendly" );
 }
 
+// ---------------------------------------------------------------------------
+//  Menu options (Patches Menu)
+// ---------------------------------------------------------------------------
 
 br_start( unused )
 {
@@ -69,6 +102,9 @@ br_stop( unused )
 	level thread br_end( "^3Battle Royale stopped by " + self.name, undefined );
 }
 
+// ---------------------------------------------------------------------------
+//  Map: spawn points, zone, ground
+// ---------------------------------------------------------------------------
 
 br_spawnPoints()
 {
@@ -108,7 +144,8 @@ br_dist2D( a, b )
 	return distance( ( a[0], a[1], 0 ), ( b[0], b[1], 0 ) );
 }
 
-
+// First circle: around every spawn point. Last circle: a spawn point near the
+// middle, so the fight ends somewhere players can stand.
 br_setupZone()
 {
 	points = level.br.points;
@@ -159,6 +196,7 @@ br_setupZone()
 	level.br.shrinkTime = 0;
 }
 
+// Wait (s), shrink (s), part of the first radius, damage per second.
 br_phases()
 {
 	p = [];
@@ -226,7 +264,7 @@ br_ringPoint( center, radius, k )
 	return br_ground( center[0] + dir[0] * radius, center[1] + dir[1] * radius );
 }
 
-
+// A spawn point inside the zone, a different one each call while there are.
 br_pickPoint( center, radius )
 {
 	points = level.br.points;
@@ -242,6 +280,7 @@ br_pickPoint( center, radius )
 	return br_ground( center[0], center[1] );
 }
 
+// Up to height above p, under any roof.
 br_skyAbove( p, height, ignore )
 {
 	top = bulletTrace( p + ( 0, 0, 40 ), p + ( 0, 0, height ), false, ignore )["position"];
@@ -251,7 +290,9 @@ br_skyAbove( p, height, ignore )
 	return pos;
 }
 
-
+// ---------------------------------------------------------------------------
+//  The round
+// ---------------------------------------------------------------------------
 
 br_run()
 {
@@ -298,6 +339,8 @@ br_run()
 	else
 		br_announce( "^5BATTLE ROYALE ^7- last one standing wins" );
 	wait 2;
+	// Redeployed: everybody alive dies once (not counted, the state is still
+	// "countdown") and spawns again with the Battle Royale loadout.
 	foreach ( player in level.players )
 	{
 		if ( br_isIn( player ) && isAlive( player ) )
@@ -348,6 +391,8 @@ br_zoneLoop()
 	level.br.timerKind = 3;
 }
 
+// Outside the zone: damage every second, through the game's own damage
+// (hit marker, red screen, no health regeneration, a normal death).
 br_damageLoop()
 {
 	level endon( "br_end" );
@@ -389,6 +434,7 @@ br_watchEnd()
 	{
 		wait 0.25;
 
+		// Did not spawn 20 s after GO: out.
 		if ( getTime() - level.br.goTime > 20000 )
 		{
 			foreach ( player in level.players )
@@ -418,6 +464,7 @@ br_watchEnd()
 				axis = true;
 		}
 
+		// One player at the start (a test): it ends when he is out.
 		over = false;
 		if ( level.br.solo )
 			over = ( winners.size == 0 );
@@ -453,6 +500,7 @@ br_watchDeath()
 	}
 }
 
+// Out: spectator until the end (as AI Zombies does with its dead).
 br_eliminate( reason )
 {
 	if ( !br_isIn( self ) )
@@ -479,6 +527,7 @@ br_toSpectator( text )
 		self thread br_hud();
 }
 
+// Called by maps\mp\_modmenu.gsc on every spawn.
 br_onSpawned()
 {
 	if ( !isDefined( level.br ) || level.br.state == "ended" )
@@ -592,6 +641,10 @@ br_announce( text )
 		player iPrintLnBold( text );
 }
 
+// ---------------------------------------------------------------------------
+//  Zone edge: flags on the circle, sliding with it, a blue light on top
+// ---------------------------------------------------------------------------
+
 br_spawnMarkers()
 {
 	for ( k = 0; k < 16; k++ )
@@ -621,7 +674,11 @@ br_markerLights()
 	}
 }
 
+// ---------------------------------------------------------------------------
+//  Loot
+// ---------------------------------------------------------------------------
 
+// weapon:name, the weapons of the Give Weapons menu.
 br_lootTable()
 {
 	t = [];
@@ -747,6 +804,9 @@ br_giveLoot( tier )
 	self iPrintLnBold( text );
 }
 
+// ---------------------------------------------------------------------------
+//  HUD: players alive, zone timer, outside warning, red screen outside
+// ---------------------------------------------------------------------------
 
 br_text( x, y, scale )
 {

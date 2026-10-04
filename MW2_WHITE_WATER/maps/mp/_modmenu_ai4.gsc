@@ -1,4 +1,5 @@
-
+// AI Zombies eXtreme V1.8 ([115]Death) -- the patch's own functions from maps/mp/gametypes/mapedit.gsc, maps/mp/gametypes/solidstuff.gsc,
+// renamed ai_* and called by maps\mp\_modmenu_ai.gsc.
 #include maps\mp\_utility;
 #include maps\mp\gametypes\_hud_util;
 #include common_scripts\utility;

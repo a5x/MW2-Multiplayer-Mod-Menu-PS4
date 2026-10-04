@@ -1,4 +1,5 @@
-
+// WhiteWaterV6.5 (xRobertDavisx, JokerRey; ported by BravSoldat) -- the patch's own
+// functions from init.gsc (Admin Menu: bots, balls, IMS, Gersh, Pavelow, AC-130, strikes), renamed ww_* and called by maps\mp\_modmenu.gsc.
 #include maps\mp\_utility;
 #include maps\mp\gametypes\_hud_util;
 #include common_scripts\utility;

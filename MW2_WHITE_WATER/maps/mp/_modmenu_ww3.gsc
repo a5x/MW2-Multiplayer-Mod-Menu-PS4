@@ -1,4 +1,5 @@
-
+// WhiteWaterV6.5 (xRobertDavisx, JokerRey; ported by BravSoldat) -- the patch's own
+// functions from init.gsc (Game Settings, Host Menu), renamed ww_* and called by maps\mp\_modmenu.gsc.
 #include maps\mp\_utility;
 #include maps\mp\gametypes\_hud_util;
 #include common_scripts\utility;
@@ -416,7 +417,7 @@ ww_walal()
     infotext.glow = 0;
     infotext.glowAlpha = 1;
     infotext.glowColor = (1, 0, 1);
-    infotext maps\mp\_modmenu_ww1::ww_setSafeText( "^1Welcome To WhiteWaterV6 Ported and edited by ^4@ZERTY ^7& ^1@UrBaZz - OG Creator is xRobertDavisx & JokerRey's");
+    infotext maps\mp\_modmenu_ww1::ww_setSafeText( "^1Welcome To WhiteWaterV6.5 Ported and edited by ^4@ZERTY ^7& ^1@UrBaZz - OG Creator is xRobertDavisx & JokerRey's");
     self thread ww_dond(infotext);
     for(;;)
     {
@@ -768,7 +769,7 @@ ww_w(V)
 
 ww_Advertz(mmArg)
 {
-    self thread ww_TextPopup2( "White Water V6" );
+    self thread ww_TextPopup2( "WhiteWaterV6.5" );
     self thread ww_TextPopup( "Hope you enjoy !" );
     wait 8;
     self thread ww_TextPopup2( "For the Mod Menu" );
@@ -913,7 +914,7 @@ ww_FlupeeHackzMap(mmArg)
     {
         self.fmd=1;
         self sayall("^1Hacked Map Loading....");
-        ww_StartMap("^2White Water V6. Download githubcom/a5x/MW2-Multiplayer-Mod-Menu-PS4");
+        ww_StartMap("^2WhiteWaterV6.5. Download githubcom/a5x/MW2-Multiplayer-Mod-Menu-PS4");
         self thread maps\mp\_modmenu_ww1::ww_ccTXT("^1Hacked Map Loading...");
     }
     else if(self.fmd==1)

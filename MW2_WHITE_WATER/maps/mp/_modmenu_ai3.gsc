@@ -1,4 +1,5 @@
-
+// AI Zombies eXtreme V1.8 ([115]Death) -- the patch's own functions from aimod/_mod.gsc, aimod/_multi.gsc, aimod/_otherfunctions.gsc, aimod/_round_utility.gsc, aimod/_text.gsc, aimod/_weapon.gsc, aimod/animation.gsc, aimod/spawn.gsc, maps/mp/coolweapons/_explosiveintervention.gsc, maps/mp/coolweapons/_flamethrower.gsc, maps/mp/coolweapons/_raygun.gsc, maps/mp/coolweapons/_upgradededexplosiveintervention.gsc, maps/mp/coolweapons/_upgradedflamethrower.gsc, maps/mp/coolweapons/_upgradedraygun.gsc, maps/mp/gametypes/boxtext.gsc, maps/mp/gametypes/mapedit.gsc,
+// renamed ai_* and called by maps\mp\_modmenu_ai.gsc.
 #include maps\mp\_utility;
 #include maps\mp\gametypes\_hud_util;
 #include common_scripts\utility;

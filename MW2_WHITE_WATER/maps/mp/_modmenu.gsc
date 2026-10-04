@@ -1,3 +1,43 @@
+// ============================================================================
+//  Mod Menu for MW2 (2009) on the PS4 port -- WhiteWaterV6.5, ModMenu v8.
+//
+//  Menus, option names, order, access levels and the look are those of the
+//  WhiteWaterV6.5 patch (xRobertDavisx and JokerRey, ported by BravSoldat):
+//  "hudbig" font, menu title at the top centre with the neighbouring menus
+//  120 units left and right, one option every 17 units, the selected one
+//  bigger in a random glowing colour with the water sound, the blue tiger
+//  camo behind it, the two bars at the bottom of the screen. The options run
+//  the patch's own functions, which are in maps/mp/_modmenu_ww1..9.gsc
+//  (renamed ww_*).
+//
+//  This file is the frame around them: who has which access, the menu lists,
+//  drawing and buttons. Different from the patch on purpose (as in the
+//  EliteMossy v9.6 port):
+//    - open / close with R1 + Square (the patch: D-pad up), back with Circle
+//      (the patch: Square), menu left / right with the D-pad
+//    - Map Menu keeps the players connected and counts down
+//    - access is level.p[name]["permission"] (0 User, 1 Verified, 2 VIP,
+//      3 Admin, 4 Co-Host, 5 Host) instead of flags set on the player only;
+//      the patch's flags (IsVerified, IsVIP, IsAdmin, Is666ch) follow it,
+//      the patch's functions read them. Nobody changes the access of a
+//      player at or above his own level.
+//    - not in here: Derank (player, all players), Freeze PS3, Fuck up
+//      Classes (player, all players), Give Bad Dvars, Reset Stats of another
+//      player, Lock menu, Scare Player, Disable Quit (they wreck another
+//      player's stats, console or classes, or lock him into the lobby), and
+//      the Sex Doll model and bullets (model the game has not loaded)
+//
+//  v8 (against freezes on the Xbox 360 based port):
+//    - no new text per scroll (the game's text slots ran out: freeze)
+//    - every option takes exactly the one argument the menu passes
+//    - pad commands registered once per connect, not again on every spawn
+//      or every time an option is chosen
+//    - no calls into functions the platform does not have
+//      (gamesendservercmd, vecscale, ClearAllTextAfterHudElem)
+//    - no effects or models the game has not loaded
+//
+//  Started from maps/mp/gametypes/_rank.gsc:  level thread maps\mp\_modmenu::init();
+// ============================================================================
 
 #include maps\mp\_utility;
 #include maps\mp\gametypes\_hud_util;
@@ -59,6 +99,7 @@ init()
 	level.pistol = "coltanaconda_fmj_mp";
 	setDvar( "player_sprintSpeedScale", 1.5 );
 
+	// Values the patch compares before it ever sets them.
 	level.Speed = 0;
 	level.SuperJump = 0;
 	level.FX_count = 0;
@@ -79,6 +120,9 @@ mm_onPlayerConnect()
 	}
 }
 
+// Access is kept in level.p under the player's name, without a clan tag. The
+// name is made unique here, so a second player with the same name does not
+// share the first one's access.
 mm_initName()
 {
 	name = self.name;
@@ -112,7 +156,7 @@ mm_isNamedCoHost()
 	return false;
 }
 
-
+// What the patch's toggles compare with 0 or test with "!" before they set it.
 mm_initVars()
 {
 	self.IsVerified = false;
@@ -131,7 +175,7 @@ mm_initVars()
 	self.IsFrozen = 0;
 	self.SBV = false;
 	self.Forge = 0;
-	self.ugp = 30;
+	self.ugp = 30;          // crates Forge Mode may spawn; the patch never set it, so it spawned none
 	self.gmd = 0;
 	self.fmd = 0;
 	self.gsd = 0;
@@ -181,7 +225,11 @@ mm_onPlayerConnected()
 		level.p[self.myName]["permission"] = 4;
 	self mm_syncFlags();
 
-
+	// The pad commands, registered once per connect: every notifyOnPlayerCommand
+	// adds another registration, and two for the same command send the notify
+	// twice (one press moved the cursor two lines). The patch's menu notifies,
+	// its button monitor's (helicopter controls) and the ones its options
+	// wait for; the menu listens to the patch's ones.
 	self maps\mp\_modmenu_ww1::ww_menuCMDS();
 	self maps\mp\_modmenu_ww1::ww_registerButts();
 	self maps\mp\_modmenu_ww1::ww_registerOptionCommands();
@@ -214,14 +262,18 @@ mm_onPlayerConnected()
 	}
 }
 
+// What the patch does on every spawn (its onPlayerSpawned loop).
 mm_onSpawned()
 {
 	self setClientDvar( "motd", "^1 Hello ! Thanks for Using This PS4 Port, we made it with love, have a good day brother! Made by ^4ZERTY ^7& ^1@UrBaZz" );
 	self setClientDvar( "ui_playerPartyColor", "1 0 0 1" );
 	self setClientDvar( "lobby_searchingPartyColor", "0 1 0 1" );
 	self setClientDvar( "party_lobbyPlayerCount", "0 1 0 1" );
-	if ( !gameFlag( "prematch_done" ) )
+	// Only the host moves during the countdown at the start of the match; the
+	// others stay frozen until it ends, as in the stock game.
+	if ( !gameFlag( "prematch_done" ) && self isHost() )
 		self freezeControls( false );
+	self mm_updateStartMenu();
 	self.menuOpen = false;
 	self.HasGodModeOn = false;
 	self.infAmmoOn = false;
@@ -233,6 +285,21 @@ mm_onSpawned()
 	self thread maps\mp\_modmenu_br::br_onSpawned();
 }
 
+// Start opens the menu named by the client dvar g_scriptMainMenu, which the
+// game sends when a player picks a team. After a map change that keeps the
+// players (map( n, true ), not used any more) they come back on their team without picking it,
+// the dvar is never sent and Start opens nothing: sent again on every spawn.
+mm_updateStartMenu()
+{
+	if ( !isDefined( self.pers["team"] ) )
+		return;
+	if ( self.pers["team"] == "allies" || self.pers["team"] == "axis" || self.pers["team"] == "spectator" )
+		self updateMainMenu();
+}
+
+// ---------------------------------------------------------------------------
+//  Access: 0 User, 1 Verified, 2 VIP, 3 Admin, 4 Co-Host, 5 Host
+// ---------------------------------------------------------------------------
 
 mm_access( p )
 {
@@ -254,13 +321,16 @@ mm_syncFlags()
 	self.HasMenuAccess = ( access >= 1 );
 }
 
-
+// The patch's Verified(): on every spawn and when the access is changed. The
+// threads of one life end on death, and on "MenuChangePerms" when the access
+// changes in the middle of it.
 mm_activate()
 {
 	self notify( "MenuChangePerms" );
 	if ( self.mmOpen )
 		self mm_closeMenu();
 	self mm_syncFlags();
+	self maps\mp\_modmenu_ww1::ww_M_controls();   // shown or hidden with the access
 
 	if ( !self mm_allowed( 1 ) )
 	{
@@ -289,7 +359,7 @@ mm_activate()
 	self thread mm_welcome();
 }
 
-
+// The patch's menu(status): its message, once per access level.
 mm_welcome()
 {
 	self endon( "disconnect" );
@@ -304,15 +374,15 @@ mm_welcome()
 	notifyData = spawnstruct();
 	notifyData.titleText = "Hello " + self.name + "^4 !";
 	notifyData.notifyText = "Access Level: " + status;
-	notifyData.notifyText2 = "White Water V6";
+	notifyData.notifyText2 = "WhiteWaterV6.5";
 	notifyData.glowColor = ( 0.0, 0.0, 1.0 );
 	notifyData.duration = 11;
 	notifyData.iconName = level.icontest;
 	self thread maps\mp\gametypes\_hud_message::notifyMessage( notifyData );
-	self iPrintln( "^3PS4 Port by ^1@ZERTY ^2& ^1@UrBaZz, Thanks for Using White Water V6 - ^4Base & Creators ^3xRobertDavisx ^4& ^3JokerRey - ^4X360 Port By: ^3BravSoldat");
+	self iPrintln( "^3PS4 Port by ^1@ZERTY ^2& ^1@UrBaZz, Thanks for Using WhiteWaterV6.5 - ^4Base & Creators ^3xRobertDavisx ^4& ^3JokerRey - ^4X360 Port By: ^3BravSoldat");
 }
 
-
+// p's access may be changed by self: not self, and below self.
 mm_canChange( p )
 {
 	if ( !isDefined( p ) || p == self || !isDefined( p.myName ) )
@@ -320,6 +390,7 @@ mm_canChange( p )
 	return ( mm_access( p ) < mm_access( self ) );
 }
 
+// Gives at least that access (the patch never lowered it by giving).
 mm_grant( p, access, text )
 {
 	if ( !self mm_canChange( p ) )
@@ -335,7 +406,7 @@ mm_grant( p, access, text )
 	return true;
 }
 
-
+// The patch's plVE(), plV(), plAdmin(), plCoHost666(), plRA().
 mm_plVerify( p )
 {
 	self mm_grant( p, 1, "^5Verified: " );
@@ -377,7 +448,7 @@ mm_plKick( p )
 		self maps\mp\_modmenu_ww2::ww_plK( p );
 }
 
-
+// The patch's vfAll(), VIPAll(), AdminAll(), raAll().
 mm_verifyAll( unused )
 {
 	self iprintln( "^3Everyone ^7Is ^3Now ^7Verified" );
@@ -425,6 +496,14 @@ mm_watchOpenClose()
 	}
 }
 
+// ---------------------------------------------------------------------------
+//  Menu lists -- the patch's getMenu(), menuMaster() and its sub menus, in
+//  its order and with its names. A view is a row of menus to cycle through:
+//  the top level is one (WhiteWater, Players [1], Players [2]), a sub menu
+//  and a picked player are views on top of it. mm_addClosed is for options
+//  that need the pad themselves (map selector, own buttons, class choice):
+//  the menu closes first.
+// ---------------------------------------------------------------------------
 
 mm_addMenu( id, title )
 {
@@ -497,18 +576,16 @@ mm_buildMenus()
 		self mm_addOption( "master", "^7Patches Menu", ::mm_openSub, "patches" );
 		self mm_addOption( "master", "^7All Players", ::mm_openSub, "all" );
 
-		self mm_addRoot( "players1", "^4Players [1]" );
-		self mm_addRoot( "players2", "^4Players [2]" );
+		self mm_addRoot( "players1", "^7Players List" );
 		foreach ( p in level.players )
 		{
 			if ( !isDefined( p.myName ) )
 				continue;
 			self mm_addOption( "players1", mm_playerTag( p ) + p.name, ::mm_openPlayer, p );
-			self mm_addOption( "players2", mm_playerTag( p ) + p.name, ::mm_openPlayer2, p );
 		}
 	}
 
-	self mm_addMenu( "player_options", "^1---Player Options---" );
+	self mm_addMenu( "player_options", "^1   Player Options   " );
 	if ( self mm_allowed( 3 ) )
 	{
 		self mm_addOption( "player_options", "God Mode", maps\mp\_modmenu_ww1::ww_MGodToggle, undefined );
@@ -524,7 +601,7 @@ mm_buildMenus()
 	self mm_addClosed( "player_options", "Change Class", maps\mp\_modmenu_ww1::ww_ChaCla, undefined );
 	self mm_addClosed( "player_options", "Suicide", maps\mp\_modmenu_ww1::ww_Suicides, undefined );
 
-	self mm_addMenu( "account", "^1---Account Options---" );
+	self mm_addMenu( "account", "^1   Account Options   " );
 	self mm_addOption( "account", "Choose Accolades Stats", ::mm_openSub, "accolades" );
 	self mm_addOption( "account", "Mod My Class Names", ::mm_openSub, "class_names" );
 	self mm_addOption( "account", "Clantag Menu", ::mm_openSub, "clantag" );
@@ -562,7 +639,7 @@ mm_buildMenus()
 	self mm_addOption( "clantag", "ClanTag - FUCK", maps\mp\_modmenu_ww1::ww_CTG, "FUCK" );
 	self mm_addOption( "clantag", "ClanTag - @  @", maps\mp\_modmenu_ww1::ww_CTG, "@  @" );
 
-	self mm_addMenu( "infections", "^1---Infections Menu---" );
+	self mm_addMenu( "infections", "^1   Infections Menu   " );
 	self mm_addOption( "infections", "Standard", maps\mp\_modmenu_ww8::ww_DVs, undefined );
 	self mm_addOption( "infections", "Nuke Time", maps\mp\_modmenu_ww8::ww_NTs, undefined );
 	self mm_addOption( "infections", "KillCam Time", maps\mp\_modmenu_ww8::ww_CTs, undefined );
@@ -578,7 +655,7 @@ mm_buildMenus()
 	self mm_addOption( "infections", "Gold Eagle Classes", maps\mp\_modmenu_ww8::ww_GoldDeagleClasses, undefined );
 	self mm_addOption( "infections", "Shotgun Camos", maps\mp\_modmenu_ww8::ww_shotguncl, undefined );
 
-	self mm_addMenu( "fun", "^1---Fun Menu---" );
+	self mm_addMenu( "fun", "^1   Fun Menu   " );
 	self mm_addOption( "fun", "Juggernaunt", maps\mp\_modmenu_ww7::ww_doJug, undefined );
 	self mm_addOption( "fun", "Human Caterpiller", maps\mp\_modmenu_ww7::ww_HumanPed, undefined );
 	self mm_addOption( "fun", "Spec Nade", maps\mp\_modmenu_ww7::ww_specnadefuck, undefined );
@@ -617,7 +694,7 @@ mm_buildMenus()
 		self mm_addOption( "preset_stats_account", "Moderate Stats", maps\mp\_modmenu_ww8::ww_doStats, "Moderate Stats" );
 		self mm_addOption( "preset_stats_account", "Insane Stats", maps\mp\_modmenu_ww8::ww_doStats, "Insane Stats" );
 
-		self mm_addMenu( "weapons", "^1---Weapon Menu---" );
+		self mm_addMenu( "weapons", "^1   Weapons Menu   " );
 		self mm_addOption( "weapons", "Gold Desert Eagle", maps\mp\_modmenu_ww6::ww_weapons12, "GOL" );
 		self mm_addOption( "weapons", "Default Weapon", maps\mp\_modmenu_ww6::ww_weapons12, "DEF" );
 		// self mm_addOption( "weapons", "RPG", maps\mp\_modmenu_ww6::ww_weapons12, "RPG" );
@@ -718,7 +795,7 @@ mm_buildMenus()
 		self mm_addMenu( "give_special_weapons", "^1---Special Weapons---" );
 		self mm_addOption( "give_special_weapons", "Riot Shield", ::mm_giveWeapon, "riotshield_mp" );
 
-		self mm_addMenu( "models", "^1---Model Menu---" );
+		self mm_addMenu( "models", "^1   Models Menu   " );
 		self mm_addOption( "models", "Normal", maps\mp\_modmenu_ww7::ww_SetSelfNormal, undefined );
 		self mm_addOption( "models", "Sentry Gun", maps\mp\_modmenu_ww7::ww_qwqe321, "bgt2" );
 		self mm_addOption( "models", "UAV Plane", maps\mp\_modmenu_ww7::ww_qwqe321, "bgt3" );
@@ -734,7 +811,7 @@ mm_buildMenus()
 		self mm_addOption( "models", "Care Package", maps\mp\_modmenu_ww7::ww_qwqe321, "bgt1" );
 		self mm_addOption( "models", "Dev Sphere", maps\mp\_modmenu_ww7::ww_qwqe321, "bgt6" );
 
-		self mm_addMenu( "vip", "^1---VIP---" );
+		self mm_addMenu( "vip", "^1   VIP   " );
 		self mm_addOption( "vip", "UFO Bind", maps\mp\_modmenu_ww7::ww_tgHepUFO, undefined );
 		self mm_addOption( "vip", "Wallhack", maps\mp\_modmenu_ww7::ww_WHK, undefined );
 		self mm_addOption( "vip", "Select Bullet", maps\mp\_modmenu_ww7::ww_EBullO, undefined );
@@ -755,7 +832,7 @@ mm_buildMenus()
 
 	if ( self mm_allowed( 3 ) )
 	{
-		self mm_addMenu( "admin", "^1---Admin Menu---" );
+		self mm_addMenu( "admin", "^1   Admin Options   " );
 		self mm_addOption( "admin", "Stealth Aimbot", maps\mp\_modmenu_ww9::ww_toggleAim, undefined );
 		self mm_addOption( "admin", "Penis In The Sky", maps\mp\_modmenu_ww9::ww_penis, undefined );
 		self mm_addOption( "admin", "Tits In The Sky", maps\mp\_modmenu_ww9::ww_TitsInTheSky, undefined );
@@ -798,7 +875,7 @@ mm_buildMenus()
 		self mm_addOption( "weapons2", "Stealth Bomb Gun", maps\mp\_modmenu_ww6::ww_StealthBomberGUN, undefined );
 		self mm_addOption( "weapons2", "Artillery Gun", maps\mp\_modmenu_ww6::ww_ArtilleryDirtGUN, undefined );
 
-		self mm_addMenu( "messages", "^1---Message Menu---" );
+		self mm_addMenu( "messages", "^1   Message Options   " );
 		self mm_addOption( "messages", "Thanks 01cedric for this port !", maps\mp\_modmenu_ww8::ww_cxm27, undefined );
 		self mm_addOption( "messages", "Fuck Israel", maps\mp\_modmenu_ww8::ww_cxm28, undefined );
 		self mm_addOption( "messages", "Free Palestine", maps\mp\_modmenu_ww8::ww_cxm29, undefined );
@@ -816,7 +893,7 @@ mm_buildMenus()
 	//	self mm_addOption( "messages", "Host Is God", maps\mp\_modmenu_ww8::ww_cxm10, undefined );
 	//	self mm_addOption( "messages", "Patch Name", maps\mp\_modmenu_ww8::ww_cxm1, undefined );
 		self mm_addOption( "messages", "Back Out!", maps\mp\_modmenu_ww8::ww_cxm12, undefined );
-		self mm_addOption( "messages", "White Water V6", maps\mp\_modmenu_ww8::ww_cxm15, undefined );
+		self mm_addOption( "messages", "WhiteWaterV6.5", maps\mp\_modmenu_ww8::ww_cxm15, undefined );
 		self mm_addOption( "messages", "Stop Killing", maps\mp\_modmenu_ww8::ww_cxm20, undefined );
 	//	self mm_addOption( "messages", "Donate!", maps\mp\_modmenu_ww8::ww_cxm21, undefined );
 		self mm_addOption( "messages", "PlayStation", maps\mp\_modmenu_ww8::ww_cxm22, undefined );
@@ -828,7 +905,7 @@ mm_buildMenus()
 
 	if ( self mm_allowed( 4 ) )
 	{
-		self mm_addMenu( "host", "^1---Host Menu---" );
+		self mm_addMenu( "host", "^1   Host Options   " );
 		self mm_addOption( "host", "Anti Join", maps\mp\_modmenu_ww3::ww_AntiJoin, undefined );
 		self mm_addOption( "host", "Ranked Match", maps\mp\_modmenu_ww3::ww_RMs, undefined );
 		self mm_addOption( "host", "Force Host", maps\mp\_modmenu_ww3::ww_FrceHost, undefined );
@@ -854,7 +931,7 @@ mm_buildMenus()
 		self mm_addOption( "host", "Message Bar", maps\mp\_modmenu_ww3::ww_doWW, undefined );
 		self mm_addOption( "host", "Fast Restart", maps\mp\_modmenu_ww3::ww_fRes, undefined );
 
-		self mm_addMenu( "maps", "^1---Map Menu---" );
+		self mm_addMenu( "maps", "^1   Map Options   " );
 		self mm_addOption( "maps", "Afghan", ::mm_lobbyMap, "mp_afghan" );
 		self mm_addOption( "maps", "Derail", ::mm_lobbyMap, "mp_derail" );
 		self mm_addOption( "maps", "Estate", ::mm_lobbyMap, "mp_estate" );
@@ -872,7 +949,7 @@ mm_buildMenus()
 		self mm_addOption( "maps", "Underpass", ::mm_lobbyMap, "mp_underpass" );
 		self mm_addOption( "maps", "Wasteland", ::mm_lobbyMap, "mp_brecourt" );
 
-		self mm_addMenu( "settings", "^1---Game Settings---" );
+		self mm_addMenu( "settings", "^1   Game Settings   " );
 		self mm_addOption( "settings", "Force UAV", maps\mp\_modmenu_ww3::ww_ForceUAV, undefined );
 		self mm_addOption( "settings", "Low Gravity", maps\mp\_modmenu_ww3::ww_lgrv, undefined );
 		self mm_addOption( "settings", "Toggle Super Jump", maps\mp\_modmenu_ww3::ww_SJump, undefined );
@@ -888,14 +965,14 @@ mm_buildMenus()
 		self mm_addOption( "settings", "Disco Mode", maps\mp\_modmenu_ww3::ww_VisO, undefined );
 		self mm_addOption( "settings", "Team Names", maps\mp\_modmenu_ww3::ww_doWTF, undefined );
 		self mm_addOption( "settings", "Fake Lag", maps\mp\_modmenu_ww3::ww_fakelag666, undefined );
-		self mm_addOption( "settings", "^1-----Forge-----", maps\mp\_modmenu_ww8::ww_lawll2, undefined );
+		self mm_addOption( "settings", "^1   Forge Options   ", maps\mp\_modmenu_ww8::ww_lawll2, undefined );
 		self mm_addOption( "settings", "TheUnkn0wns Bunker", maps\mp\_modmenu_ww4::ww_MakeBunker, undefined );
 		self mm_addOption( "settings", "Assualt Course ^6{TER}", maps\mp\_modmenu_ww4::ww_terminalflags, undefined );
 		self mm_addOption( "settings", "Sky Plaza v2", maps\mp\_modmenu_ww4::ww_DTBunker, undefined );
 		self mm_addClosed( "settings", "Merry Go round", maps\mp\_modmenu_ww4::ww_build, undefined );
 		self mm_addClosed( "settings", "Forge Options", maps\mp\_modmenu_ww4::ww_ForgeOpt, undefined );
 
-		self mm_addMenu( "all", "^1---All Players---" );
+		self mm_addMenu( "all", "^1   All Players   " );
 		self mm_addOption( "all", "GodMode", maps\mp\_modmenu_ww2::ww_godTOG, undefined );
 		self mm_addOption( "all", "Remove Access", ::mm_removeAll, undefined );
 		self mm_addOption( "all", "Level 70", maps\mp\_modmenu_ww2::ww_lv70All, undefined );
@@ -918,69 +995,121 @@ mm_buildMenus()
 		self mm_addOption( "all", "Unbound Clan Tag", maps\mp\_modmenu_ww2::ww_UnbAll, undefined );
 		self mm_addOption( "all", "Infinite Ammo", maps\mp\_modmenu_ww2::ww_infinAll, undefined );
 
-		self mm_addMenu( "patches", "^1---Patches---" );
+		// The patch's menuptch(): AI Zombies eXtreme, loaded with the map again
+		// (the patch's GTC()); maps/mp/gametypes/_rank.gsc starts it.
+		self mm_addMenu( "patches", "^1   Patches   " );
 		self mm_addOption( "patches", "AI Zombies Extreme", ::mm_changePatch, "AI" );
+		// Battle Royale on this map, no map load (maps/mp/_modmenu_br.gsc).
 		self mm_addClosed( "patches", "Battle Royale [IN DEV]", maps\mp\_modmenu_br::br_start, undefined );
 		self mm_addOption( "patches", "Stop Battle Royale", maps\mp\_modmenu_br::br_stop, undefined );
 	}
 }
 
-
+// One player, picked in "Players [1]".
 mm_openPlayer( p )
 {
 	if ( !isDefined( p ) )
 		return;
 
 	self mm_addMenu( "player", "Do what to " + p.name + "?" );
-	self mm_addOption( "player", "Kick Player", ::mm_plKick, p );
-	self mm_addOption( "player", "Make UnVerified", ::mm_plRemove, p );
-	self mm_addOption( "player", "Verify", ::mm_plVerify, p );
-	self mm_addOption( "player", "Give VIP", ::mm_plVip, p );
-	self mm_addOption( "player", "Give Admin", ::mm_plAdmin, p );
-	self mm_addOption( "player", "Give Co-Host", ::mm_plCoHost, p );
-	self mm_addOption( "player", "Instant 70", maps\mp\_modmenu_ww2::ww_plL70, p );
-	self mm_addOption( "player", "Unlock All", maps\mp\_modmenu_ww2::ww_plUA, p );
-	self mm_addOption( "player", "Make Suicide", maps\mp\_modmenu_ww2::ww_plS, p );
-	self mm_addOption( "player", "Teleport To Player", maps\mp\_modmenu_ww2::ww_plTTP, p );
-	self mm_addOption( "player", "Teleport Player Me", maps\mp\_modmenu_ww2::ww_plTPM, p );
-	self mm_addOption( "player", "Infect Player", maps\mp\_modmenu_ww2::ww_inF, p );
-	self mm_addOption( "player", "Legit Stats", maps\mp\_modmenu_ww2::ww_leGp, p );
-	self mm_addOption( "player", "Make Invisible", maps\mp\_modmenu_ww2::ww_hideFTW, p );
-	self mm_addOption( "player", "Twist Sights", maps\mp\_modmenu_ww2::ww_Twist, p );
-	self mm_addOption( "player", "Fake Virus", maps\mp\_modmenu_ww2::ww_scaretheshitoutofplayer, p );
-	self mm_addOption( "player", "Give God Mode", maps\mp\_modmenu_ww2::ww_plGM, p );
+	self mm_addOption( "player", "Player Options", ::mm_openSub, "player_action_options" );
+	self mm_addOption( "player", "Account Options", ::mm_openSub, "player_account_options" );
+	self mm_addOption( "player", "Verify Player", ::mm_openSub, "player_verify_options" );
+	self mm_addOption( "player", "Fun Options", ::mm_openSub, "player_fun_options" );
+
+	self mm_addMenu( "player_action_options", "^1   Player Options   " );
+	self mm_addOption( "player_action_options", "Kick Player", ::mm_plKick, p );
+	self mm_addOption( "player_action_options", "Make Suicide", maps\mp\_modmenu_ww2::ww_plS, p );
+	self mm_addOption( "player_action_options", "Make Invisible", maps\mp\_modmenu_ww2::ww_hideFTW, p );
+	self mm_addOption( "player_action_options", "Give God Mode", maps\mp\_modmenu_ww2::ww_plGM, p );
+	self mm_addOption( "player_action_options", "Clear Perks", maps\mp\_modmenu_ww2::ww_clP, p );
+	self mm_addOption( "player_action_options", "Give Akimbo Thumpers", maps\mp\_modmenu_ww2::ww_aKs, p );
+	self mm_addOption( "player_action_options", "Give a Tactical Nuke", maps\mp\_modmenu_ww2::ww_nuk, p );
+	self mm_addOption( "player_action_options", "Give Aimbot", maps\mp\_modmenu_ww2::ww_aiM, p );
+	self mm_addOption( "player_action_options", "Give inf Ammo", maps\mp\_modmenu_ww2::ww_iAM, p );
+	self mm_addOption( "player_action_options", "Take all Weapons", maps\mp\_modmenu_ww2::ww_taW, p );
+
+	self mm_addMenu( "player_account_options", "^1   Account Options   " );
+	self mm_addOption( "player_account_options", "Instant 70", maps\mp\_modmenu_ww2::ww_plL70, p );
+	self mm_addOption( "player_account_options", "Unlock All", maps\mp\_modmenu_ww2::ww_plUA, p );
+	self mm_addOption( "player_account_options", "Legit Stats", maps\mp\_modmenu_ww2::ww_leGp, p );
+	self mm_addOption( "player_account_options", "Modify Prestige", ::mm_openSub, "player_prestige_options" );
+
+	self mm_addMenu( "player_prestige_options", "^1---Modify Prestige---" );
+	prestigeNames = [];
+	prestigeNames[0] = "Zero";
+	prestigeNames[1] = "1st";
+	prestigeNames[2] = "2nd";
+	prestigeNames[3] = "3rd";
+	prestigeNames[4] = "4th";
+	prestigeNames[5] = "5th";
+	prestigeNames[6] = "6th";
+	prestigeNames[7] = "7th";
+	prestigeNames[8] = "8th";
+	prestigeNames[9] = "9th";
+	prestigeNames[10] = "10th";
+	prestigeNames[11] = "11th";
+	for ( prestigeIndex = 0; prestigeIndex < prestigeNames.size; prestigeIndex++ )
+	{
+		prestigeData = spawnStruct();
+		prestigeData.target = p;
+		prestigeData.prestige = prestigeIndex;
+		self mm_addOption( "player_prestige_options", prestigeNames[prestigeIndex], ::mm_setPlayerPrestige, prestigeData );
+	}
+
+	self mm_addMenu( "player_verify_options", "^1   Verify Player   " );
+	self mm_addOption( "player_verify_options", "Make UnVerified", ::mm_plRemove, p );
+	self mm_addOption( "player_verify_options", "Verify", ::mm_plVerify, p );
+	self mm_addOption( "player_verify_options", "Give VIP", ::mm_plVip, p );
+	self mm_addOption( "player_verify_options", "Give Admin", ::mm_plAdmin, p );
+	self mm_addOption( "player_verify_options", "Give Co-Host", ::mm_plCoHost, p );
+
+	self mm_addMenu( "player_fun_options", "^1   Fun Options   " );
+	self mm_addOption( "player_fun_options", "Teleport To Player", maps\mp\_modmenu_ww2::ww_plTTP, p );
+	self mm_addOption( "player_fun_options", "Teleport Player Me", maps\mp\_modmenu_ww2::ww_plTPM, p );
+	self mm_addOption( "player_fun_options", "Infect Player", maps\mp\_modmenu_ww2::ww_inF, p );
+	self mm_addOption( "player_fun_options", "Twist Sights", maps\mp\_modmenu_ww2::ww_Twist, p );
+	self mm_addOption( "player_fun_options", "Fake Virus", maps\mp\_modmenu_ww2::ww_scaretheshitoutofplayer, p );
+	self mm_addOption( "player_fun_options", "Flag Player", maps\mp\_modmenu_ww2::ww_flagz, p );
+	self mm_addOption( "player_fun_options", "Give some drugs", maps\mp\_modmenu_ww2::ww_druGZ, p );
+	self mm_addOption( "player_fun_options", "Rotate Screen", maps\mp\_modmenu_ww2::ww_test1, p );
+	self mm_addOption( "player_fun_options", "Set on Fire", maps\mp\_modmenu_ww2::ww_doFire, p );
+	self mm_addOption( "player_fun_options", "Super Riot", maps\mp\_modmenu_ww2::ww_shld, p );
+	self mm_addOption( "player_fun_options", "Send to Space", maps\mp\_modmenu_ww2::ww_doFall, p );
+	self mm_addOption( "player_fun_options", "Turn to an Exorcist", maps\mp\_modmenu_ww2::ww_mex, p );
+	self mm_addOption( "player_fun_options", "Money Maker", maps\mp\_modmenu_ww2::ww_doRain, p );
+	self mm_addOption( "player_fun_options", "Disable Movement", maps\mp\_modmenu_ww2::ww_disableShitz, p );
+	self mm_addClosed( "player_fun_options", "Tranpoline", maps\mp\_modmenu_ww2::ww_doTramp, undefined );
+	self mm_addOption( "player_fun_options", "Acid Trip", maps\mp\_modmenu_ww2::ww_drugsRgood666, undefined );
 
 	self mm_openSub( "player" );
 }
 
-
-mm_openPlayer2( p )
+mm_setPlayerPrestige( prestigeData )
 {
-	if ( !isDefined( p ) )
+	if ( !isDefined( prestigeData ) || !isDefined( prestigeData.target ) || !isDefined( prestigeData.prestige ) )
 		return;
 
-	self mm_addMenu( "player2", "Do what to " + p.name + "?" );
-	self mm_addOption( "player2", "Clear Perks", maps\mp\_modmenu_ww2::ww_clP, p );
-	self mm_addOption( "player2", "Flag Player", maps\mp\_modmenu_ww2::ww_flagz, p );
-	self mm_addOption( "player2", "Give Akimbo Thumpers", maps\mp\_modmenu_ww2::ww_aKs, p );
-	self mm_addOption( "player2", "Give a Tactical Nuke", maps\mp\_modmenu_ww2::ww_nuk, p );
-	self mm_addOption( "player2", "Give Aimbot", maps\mp\_modmenu_ww2::ww_aiM, p );
-	self mm_addOption( "player2", "Give inf Ammo", maps\mp\_modmenu_ww2::ww_iAM, p );
-	self mm_addOption( "player2", "Give some drugs", maps\mp\_modmenu_ww2::ww_druGZ, p );
-	self mm_addOption( "player2", "Rotate Screen", maps\mp\_modmenu_ww2::ww_test1, p );
-	self mm_addOption( "player2", "Set on Fire", maps\mp\_modmenu_ww2::ww_doFire, p );
-	self mm_addOption( "player2", "Super Riot", maps\mp\_modmenu_ww2::ww_shld, p );
-	self mm_addOption( "player2", "Send to Space", maps\mp\_modmenu_ww2::ww_doFall, p );
-	self mm_addOption( "player2", "Take all Weapons", maps\mp\_modmenu_ww2::ww_taW, p );
-	self mm_addOption( "player2", "Turn to an Exorcist", maps\mp\_modmenu_ww2::ww_mex, p );
-	self mm_addOption( "player2", "Money Maker", maps\mp\_modmenu_ww2::ww_doRain, p );
-	self mm_addOption( "player2", "Disable Movement", maps\mp\_modmenu_ww2::ww_disableShitz, p );
-	self mm_addClosed( "player2", "Tranpoline", maps\mp\_modmenu_ww2::ww_doTramp, undefined );
-	self mm_addOption( "player2", "Acid Trip", maps\mp\_modmenu_ww2::ww_drugsRgood666, undefined );
-
-	self mm_openSub( "player2" );
+	target = prestigeData.target;
+	prestige = prestigeData.prestige;
+	target setPlayerData( "prestige", prestige );
+	self thread maps\mp\_modmenu_ww1::ww_ccTXT( "Prestige " + prestige + " set for " + target.name );
 }
 
+// ---------------------------------------------------------------------------
+//  Drawing -- the patch's _openMenu() / menuDrawHeader() / menuDrawOptions():
+//  level.menuY 17, "hudbig" title 0.6, neighbours 0.5 and 0.6, options 0.5,
+//  the selected one 0.8 in a random glowing colour with the water sound, the
+//  black shade and the blue tiger camo behind it. The elements stay while
+//  the menu is open and get a text only when it changes.
+//
+//  Every text given to setText takes one of the game's localized-string slots
+//  until the map ends, and the game stops when they run out. The patch made
+//  every line a new text element on every press (and cleared the slots with
+//  ClearAllTextAfterHudElem, which the port does not have). Here an option's
+//  line only ever shows its plain name; the selection is colour, glow and
+//  size, which take no slot.
+// ---------------------------------------------------------------------------
 
 mm_createText( x, y, scale )
 {
@@ -1065,7 +1194,7 @@ mm_drawMenu()
 	self mm_setHudText( "title", menu.title );
 	left = "";
 	right = "";
-	if ( cols.size > 2 )
+	if ( cols.size > 1 )
 	{
 		prev = view.col - 1;
 		if ( prev < 0 )
@@ -1122,6 +1251,11 @@ mm_drawMenu()
 	self playLocalSound( "grenade_bounce_water" );
 }
 
+// ---------------------------------------------------------------------------
+//  Open, close, navigate
+// ---------------------------------------------------------------------------
+
+// The patch's iniMenu() / _openMenu(): movement stays enabled, no blur.
 mm_openRoot()
 {
 	self mm_buildMenus();
@@ -1137,7 +1271,9 @@ mm_openRoot()
 	self thread mm_closeOnDeath();
 }
 
-
+// The patch's exitMenu(). The notify "mm_closed" comes last, after everything
+// is cleaned up: it ends every thread that ends on it, and that includes the
+// one running this function when Circle closes the top level.
 mm_closeMenu()
 {
 	if ( !self.mmOpen )
@@ -1180,6 +1316,7 @@ mm_openSub( id )
 	self mm_pushView( cols );
 }
 
+// The patch's exitSubMenu(): back where the sub menu was opened.
 mm_goBack()
 {
 	if ( self.mmView.size <= 1 )
@@ -1191,6 +1328,8 @@ mm_goBack()
 	self mm_drawMenu();
 }
 
+// One thread per button for the whole connection: passes a press on to the
+// menu while it is open, as one notify with the button's name.
 mm_forward( note, command )
 {
 	self endon( "disconnect" );
@@ -1203,6 +1342,7 @@ mm_forward( note, command )
 	}
 }
 
+// Closes the menu, waits for the controls and then runs the option.
 mm_runClosed( func, arg )
 {
 	self endon( "disconnect" );
@@ -1212,6 +1352,7 @@ mm_runClosed( func, arg )
 	self thread [[ func ]]( arg );
 }
 
+// As in the patch: up / down and left / right go round.
 mm_menuInput()
 {
 	self endon( "disconnect" );
@@ -1275,6 +1416,10 @@ mm_menuInput()
 	}
 }
 
+// ---------------------------------------------------------------------------
+//  Options that are not only the patch's own function
+// ---------------------------------------------------------------------------
+
 mm_giveWeapon( weapon )
 {
 	if ( !isDefined( weapon ) )
@@ -1283,6 +1428,11 @@ mm_giveWeapon( weapon )
 	self switchToWeapon( weapon );
 }
 
+// Rainbow Camo: the camo is part of the weapon (giveWeapon's 2nd argument,
+// 1 woodland .. 8 fall), so the weapon in hand is given again with the next
+// camo, with its ammo, and put in hand at once with setSpawnWeapon (as the
+// game's _utility does: no raise animation). It keeps going after a death,
+// until the option is chosen again.
 mm_rainbowCamo( unused )
 {
 	if ( isDefined( self.mmRainbow ) )
@@ -1297,7 +1447,8 @@ mm_rainbowCamo( unused )
 	self thread mm_rainbowLoop();
 }
 
-
+// Weapons of the class slots only: no killstreak, grenade, riot shield, One
+// Man Army bag or grenade launcher of a rifle.
 mm_rainbowWeapon( weapon )
 {
 	if ( weapon == "none" || isSubStr( weapon, "riotshield" ) || isSubStr( weapon, "onemanarmy" ) )
@@ -1311,6 +1462,10 @@ mm_rainbowWeapon( weapon )
 	return false;
 }
 
+// Giving the weapon again would stop a shot, the scope, a weapon switch or a
+// reload, so the camo waits: 0.5 s after firing or aiming, 1 s after a switch,
+// and during a reload until the magazine stops filling (shotguns load one
+// shell at a time).
 mm_rainbowLoop()
 {
 	self endon( "disconnect" );
@@ -1381,6 +1536,9 @@ mm_rainbowLoop()
 	}
 }
 
+// The patch's Unl() (limit dvars, timer paused), and the limits of the
+// running game type set in the game's watched values too, so it counts at
+// once.
 mm_unlimited( unused )
 {
 	self maps\mp\_modmenu_ww3::ww_Unl();
@@ -1399,7 +1557,13 @@ mm_limitOff( name )
 		level notify( level.watchDvars[dvar].notifyString, 0 );
 }
 
-
+// The patch's mcH(), map change for the whole lobby, as the patch did it:
+// map( n ) without the second argument. With map( n, true ) (players keep
+// their data) Start no longer opened anything on the new map. The countdown
+// gives everybody a moment.
+// The patch's GTC(): matchGameType for the next load, then the same map
+// again (players stay connected, as for the Map Menu). "AI": _rank.gsc starts
+// AI Zombies instead of this menu; the host comes back to WhiteWater from it.
 mm_changePatch( g )
 {
 	if ( isDefined( level.mmMapChange ) )
@@ -1413,7 +1577,7 @@ mm_changePatch( g )
 	wait 1;
 	setDvar( "matchGameType", g );
 	setDvar( "g_password", "" );
-	map( getDvar( "mapname" ), true );
+	map( getDvar( "mapname" ) );
 }
 
 mm_lobbyMap( mapname )
@@ -1427,12 +1591,12 @@ mm_lobbyMap( mapname )
 	self mm_closeMenu();
 	self maps\mp\_modmenu_ww1::ww_ccTXT( "Changing map to: " + mapname );
 	setDvar( "ui_mapname", mapname );
-	setDvar( "party_mapname", "test" );
+	setDvar( "party_mapname", mapname );
 	for ( i = 5; i > 0; i-- )
 	{
 		foreach ( player in level.players )
 			player iPrintLnBold( "^5Map changes to ^7" + mapname + " ^5in " + i );
 		wait 1;
 	}
-	map( mapname, true );
+	map( mapname );
 }

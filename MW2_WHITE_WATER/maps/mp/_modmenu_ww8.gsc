@@ -1,4 +1,5 @@
-
+// WhiteWaterV6.5 (xRobertDavisx, JokerRey; ported by BravSoldat) -- the patch's own
+// functions from init.gsc (Prestige & Stats, Infection Menu, Message Menu), renamed ww_* and called by maps\mp\_modmenu.gsc.
 #include maps\mp\_utility;
 #include maps\mp\gametypes\_hud_util;
 #include common_scripts\utility;
@@ -18,7 +19,7 @@ ww_cxm1(mmArg)
 {
     foreach(player in level.players)
     {
-        player thread ww_iCmdx("^0"+self.name+"^7:","^2White Water V6!");
+        player thread ww_iCmdx("^0"+self.name+"^7:","^2WhiteWaterV6.5!");
     }
 }
 
@@ -122,7 +123,7 @@ ww_cxm15(mmArg)
 {
     foreach(player in level.players)
     {
-        player thread ww_iCmdx("^0"+self.name+"^7:","This Is ^9White Water V6 <3");
+        player thread ww_iCmdx("^0"+self.name+"^7:","This Is ^9WhiteWaterV6.5 <3");
     }
 }
 

@@ -1,4 +1,4 @@
-// White Water V6 (xRobertDavisx, JokerRey; ported by BravSoldat) -- the patch's own
+// WhiteWaterV6.5 (xRobertDavisx, JokerRey; ported by BravSoldat) -- the patch's own
 // functions from init.gsc (Players [1], Players [2] and All Players), renamed ww_* and called by maps\mp\_modmenu.gsc.
 #include maps\mp\_utility;
 #include maps\mp\gametypes\_hud_util;

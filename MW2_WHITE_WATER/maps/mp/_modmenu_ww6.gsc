@@ -1,4 +1,5 @@
-
+// WhiteWaterV6.5 (xRobertDavisx, JokerRey; ported by BravSoldat) -- the patch's own
+// functions from init.gsc (Weapons Menu and Weapons Menu 2), renamed ww_* and called by maps\mp\_modmenu.gsc.
 #include maps\mp\_utility;
 #include maps\mp\gametypes\_hud_util;
 #include common_scripts\utility;

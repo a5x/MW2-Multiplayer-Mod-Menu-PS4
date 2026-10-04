@@ -1,4 +1,5 @@
-
+// WhiteWaterV6.5 (xRobertDavisx, JokerRey; ported by BravSoldat) -- the patch's own
+// functions from init.gsc (Account Menu and the patch's helpers), renamed ww_* and called by maps\mp\_modmenu.gsc.
 #include maps\mp\_utility;
 #include maps\mp\gametypes\_hud_util;
 #include common_scripts\utility;
@@ -463,7 +464,7 @@ ww_doCred(mmArg)
     self.maxhealth=90000;
     self freezeControls(true);
     wait 3;
-    self thread maps\mp\gametypes\_hud_message::hintMessage("White Water V6 Ultimate Patch");
+    self thread maps\mp\gametypes\_hud_message::hintMessage("WhiteWaterV6.5 Ultimate Patch");
     wait 5;
     self thread maps\mp\gametypes\_hud_message::hintMessage("^1Created By:");
     wait 5;
@@ -753,10 +754,18 @@ ww_clearAir()
     }
 }
 
+// Only players with the menu (Verified and above) see how to open it; made
+// once, not again while it is on the screen.
 ww_M_controls()
 {
-    if ( !isDefined( self.wwControlHud ) )
-        self.wwControlHud = [];
+    if ( !self maps\mp\_modmenu::mm_allowed( 1 ) )
+    {
+        self ww_destroyControlsHud();
+        return;
+    }
+    if ( isDefined( self.wwControlHud ) )
+        return;
+    self.wwControlHud = [];
     self.wwControlHud["instructions"] = self createFontString( "hudsmall", 0.6 );
     self.wwControlHud["instructions"] setPoint( "LEFT", "CENTER", -370, 0 );
     self.wwControlHud["instructions"] ww_setSafeText( "^7Open ^7[{+frag}] + [{+usereload}]\n^7Navigate ^7[{+actionslot 1}] [{+actionslot 2}] [{+actionslot 3}] [{+actionslot 4}]\n^7Select ^7[{+gostand}]\n^7Back ^7[{+stance}]" );
