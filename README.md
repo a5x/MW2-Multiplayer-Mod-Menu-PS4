@@ -22,12 +22,12 @@ A mythic **Call of Duty: Modern Warfare 2 Multiplayer Mod Menu** ported to **PS4
     - Color class names
     - Modded class names (keybind square etc)
 - ***Clantag menu***
- - unbound
- - {IL}
- - {{}}
- - {@@}
- - {EZ}
- - @  @
+  - unbound
+  - {IL}
+  - {{}}
+  - {@@}
+  - {EZ}
+  - @  @
 - LEVEL 70
 - Unlock all
 - Select Prestige
