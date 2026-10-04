@@ -43,10 +43,10 @@ A mythic **Call of Duty: Modern Warfare 2 Multiplayer Mod Menu** ported to **PS4
 - ***Fun Options***
 
 - ***Weapons Stats***
-- Gold Desert Eagle
-- Give Weapons
-- Camo Loop
-- and more
+  - Gold Desert Eagle
+  - Give Weapons
+  - Camo Loop
+  - and more
 
 - ***Model Options***
 
