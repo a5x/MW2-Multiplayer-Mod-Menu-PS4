@@ -6,22 +6,22 @@ A mythic **Call of Duty: Modern Warfare 2 Multiplayer Mod Menu** ported to **PS4
 
 ## Features
 
-### Player Options
+- ***Player Options***
+  - God Mod
+  - infinite ammo
+  - ufo
+  - fov
+  - sucide
+  - change class
+  - third person
+  - invisible
 
-* God mod
-* Infinite ammo
-* UFO
-* FOV
-* etc
-
-### Account Options
-
-- Account Options
-- Modded Accolades stats (10k to 1b)
-- Modded class names options
- - Color class names
- - Modded class names (keybind square etc)
-- Clantag menu
+- ***Account Options***
+  - Modded Accolades stats (10k to 1b)
+  - Modded class names options
+    - Color class names
+    - Modded class names (keybind square etc)
+- ***Clantag menu***
  - unbound
  - {IL}
  - {{}}
@@ -33,13 +33,10 @@ A mythic **Call of Duty: Modern Warfare 2 Multiplayer Mod Menu** ported to **PS4
 - Select Prestige
 - Preset Stats Account
 
-### Infection Options
 
-* Infection Options
+- ***Infection Options***
 
-### Fun Options
-
-* Fun Options
+- ***Fun Options***
 
 ### Weapons Options
 
