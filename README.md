@@ -2,6 +2,8 @@
 
 # **White Water Menu V6 by @a5x(ZERTY) and @UrBaaZz**
 
+Discord server : no link yet 
+
 A mythic **Call of Duty: Modern Warfare 2 Multiplayer Mod Menu** ported to **PS4** for **Private Matches**.
 
 ## Features
