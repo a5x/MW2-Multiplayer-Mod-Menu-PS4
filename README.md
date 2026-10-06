@@ -83,7 +83,7 @@ Drag and drop the `MW2_WHITE_WATER` files into your **MW2 mods folder**.
 
 ### Step 3
 
-Launch MW2 and start a **Private Match** to use the menu.
+Launch MW2 go in mods option, enable White water and start a **Private Match** to use the menu.
 
 ---
 
