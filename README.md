@@ -1,4 +1,4 @@
-# MW2-Multiplayer-Mod-Menu-PS4
+# Open Source Project !
 
 # **White Water Menu V6 by @a5x(ZERTY) and @UrBaaZz**
 
