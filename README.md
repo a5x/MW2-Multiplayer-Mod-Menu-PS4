@@ -1,4 +1,4 @@
-# Open Source Project !
+# Open Source Project !.
 
 # **White Water Menu V6 by @a5x(ZERTY) and @UrBaaZz**
 
